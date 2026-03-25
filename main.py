@@ -18,7 +18,7 @@ app = FastAPI(title="Big Five OCEAN API")
 # Enable CORS for your Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", os.getenv("FRONTEND_URL", "https://made-agent-ui.vercel.app")],  # Local + Production URLs
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://made-test-ocean.vercel.app", os.getenv("FRONTEND_URL", "https://made-agent-ui.vercel.app")],  # Local + Production URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
