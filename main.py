@@ -18,7 +18,7 @@ app = FastAPI(title="Big Five OCEAN API")
 # Enable CORS for your Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://made-test-ocean.vercel.app", os.getenv("FRONTEND_URL", "https://made-agent-ui.vercel.app")],  # Local + Production URLs
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://made-test-ocean.vercel.app", "https://made-test-ocean-90yqudlau-thaveesha20222110-8749s-projects.vercel.app", "https://made-agent-pfh2k1xj4-thaveesha20222110-8749s-projects.vercel.app", os.getenv("FRONTEND_URL", "https://made-agent-ui.vercel.app")],  # Local + Production URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -377,7 +377,7 @@ async def execute_task_stream(report_id: str, task: str):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "http://localhost:5173",
+            "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET",
             "Access-Control-Allow-Headers": "*",
         }
@@ -606,7 +606,7 @@ async def execute_task_stream_by_id(task_id: str):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "http://localhost:5173",
+            "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET",
             "Access-Control-Allow-Headers": "*",
         }
