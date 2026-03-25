@@ -137,7 +137,7 @@ async def save_ocean_scores(data: OceanData):
             "last_linguistic_response": response_text,
             "confidence_at_generation": conf_val,
             "retention_at_generation": retention_val,
-            "generation_timestamp": datetime.now().isoformat()
+            "generation_timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         # Insert into MongoDB
@@ -274,7 +274,7 @@ async def save_task(task: TaskItem):
     """
     try:
         task_dict = task.dict()
-        task_dict["created_at"] = datetime.now().isoformat()
+        task_dict["created_at"] = datetime.now(timezone.utc).isoformat()
         
         # Ensure numeric types
         task_dict["importance_kk"] = float(task_dict["importance_kk"])
@@ -337,7 +337,7 @@ async def generate_response(report_id: str, base_memory: str = "The last assigne
             "last_linguistic_response": response_text,
             "confidence_at_generation": conf_val,
             "retention_at_generation": retention,
-            "generation_timestamp": datetime.now().isoformat()
+            "generation_timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         ocean_collection.update_one({"_id": report["_id"]}, {"$set": update_data})
@@ -464,7 +464,7 @@ async def start_task_execution(task_id: str):
             {
                 "$set": {
                     "status": "running",
-                    "started_at": datetime.now().isoformat()
+                    "started_at": datetime.now(timezone.utc).isoformat()
                 }
             }
         )
@@ -487,7 +487,7 @@ async def start_task_execution(task_id: str):
                     {
                         "$set": {
                             "status": "completed",
-                            "completed_at": datetime.now().isoformat(),
+                            "completed_at": datetime.now(timezone.utc).isoformat(),
                             "execution_log": execution_log
                         }
                     }
@@ -499,7 +499,7 @@ async def start_task_execution(task_id: str):
                     {
                         "$set": {
                             "status": "failed",
-                            "completed_at": datetime.now().isoformat(),
+                            "completed_at": datetime.now(timezone.utc).isoformat(),
                             "execution_log": execution_log + [f"❌ Error: {str(e)}"]
                         }
                     }
@@ -565,7 +565,7 @@ async def execute_task_stream_by_id(task_id: str):
             # Mark task as running
             tasks_collection.update_one(
                 {"_id": ObjectId(task_id)},
-                {"$set": {"status": "running", "started_at": datetime.now().isoformat()}}
+                {"$set": {"status": "running", "started_at": datetime.now(timezone.utc).isoformat()}}
             )
             
             # Stream live execution and collect logs
@@ -587,7 +587,7 @@ async def execute_task_stream_by_id(task_id: str):
                 {"_id": ObjectId(task_id)},
                 {"$set": {
                     "status": "completed",
-                    "completed_at": datetime.now().isoformat(),
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
                     "execution_log": execution_log
                 }}
             )

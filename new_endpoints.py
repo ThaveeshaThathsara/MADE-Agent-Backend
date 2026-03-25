@@ -2,6 +2,7 @@
 
 import threading
 import asyncio
+from datetime import datetime, timezone
 
 # Global dictionary to track running tasks
 running_tasks = {}
@@ -54,7 +55,7 @@ async def start_task_execution(task_id: str):
             {
                 "$set": {
                     "status": "running",
-                    "started_at": datetime.now().isoformat()
+                    "started_at": datetime.now(timezone.utc).isoformat()
                 }
             }
         )
@@ -77,7 +78,7 @@ async def start_task_execution(task_id: str):
                     {
                         "$set": {
                             "status": "completed",
-                            "completed_at": datetime.now().isoformat(),
+                            "completed_at": datetime.now(timezone.utc).isoformat(),
                             "execution_log": execution_log
                         }
                     }
@@ -89,7 +90,7 @@ async def start_task_execution(task_id: str):
                     {
                         "$set": {
                             "status": "failed",
-                            "completed_at": datetime.now().isoformat(),
+                            "completed_at": datetime.now(timezone.utc).isoformat(),
                             "execution_log": execution_log + [f"❌ Error: {str(e)}"]
                         }
                     }
