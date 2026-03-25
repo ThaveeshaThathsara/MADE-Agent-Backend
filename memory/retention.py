@@ -205,7 +205,7 @@ def calculate_retention(p_factor, days=0, s_fast=None, s_slow=None, **kwargs):
 
 def calculate_retention_from_timestamp(p_factor, created_at, game_time_scale=60, **kwargs):
     """Convert real time → game days. Accepts **kwargs."""
-    time_delta = datetime.now() - created_at
+    time_delta = datetime.now(timezone.utc) - created_at
     real_seconds = time_delta.total_seconds()
     game_days = real_seconds / game_time_scale  # 60sec = 1 game day
     
