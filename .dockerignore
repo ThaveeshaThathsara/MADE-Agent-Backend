@@ -1,0 +1,14 @@
+env/
+__pycache__/
+.idea/
+*.png
+*.pyc
+UI/
+.env
+node_modules/
+tts_server.py
+tts_output/
+voice.py
+test_*.py
+.git/
+.github/

@@ -1,0 +1,8 @@
+.env
+env/
+__pycache__/
+.idea/
+*.pyc
+tts_output/
+uploads/
+*.png
