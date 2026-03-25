@@ -58,7 +58,8 @@ def watch_degradation(report_id, game_time_scale=60):
             
             try:
                 # Trigger linguistic generation via API
-                resp = requests.post(f"http://localhost:8000/api/generate-npc-response/{report_id}")
+                port = os.getenv("PORT", "8000")
+                resp = requests.post(f"http://localhost:{port}/api/generate-npc-response/{report_id}")
                 if resp.status_code == 200:
                     data = resp.json()
                     print(f"🗣️ NPC SAYS: {data['response']}")

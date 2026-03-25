@@ -126,7 +126,8 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
     
     # Step 1: Get cognitive state from MADE backend
     try:
-        state_response = requests.get(f"http://localhost:8000/api/adk/get-npc-state/{report_id}")
+        port = os.getenv("PORT", "8000")
+        state_response = requests.get(f"http://localhost:{port}/api/adk/get-npc-state/{report_id}")
         state_response.raise_for_status()
         state = state_response.json()
         
