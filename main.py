@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 import os
 from dotenv import load_dotenv
@@ -133,7 +133,7 @@ async def save_ocean_scores(data: OceanData):
             "priority_mock": prio_val,
             "ocean_scores": data.ocean_scores.dict(),
             "ocean_normalized": data.ocean_normalized.dict(),
-            "saved_at": datetime.now().isoformat(),
+            "saved_at": datetime.now(timezone.utc).isoformat(),
             "last_linguistic_response": response_text,
             "confidence_at_generation": conf_val,
             "retention_at_generation": retention_val,

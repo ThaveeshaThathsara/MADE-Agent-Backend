@@ -166,7 +166,7 @@
 import math
 import time
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pymongo import MongoClient
 
 # Research-Validated Constants
@@ -229,7 +229,7 @@ def start_monitor(report_id):
         return
 
     p_factor = candidate["p_factor"]
-    start_time = datetime.fromisoformat(candidate.get("saved_at", datetime.now().isoformat()))
+    start_time = datetime.fromisoformat(candidate.get("saved_at", datetime.now(timezone.utc).isoformat()))
 
     print(f"\n🚀 TWO-PHASE MONITOR STARTED | ID: {report_id}")
     print(f"📈 P-Factor: {p_factor:.2f} ({p_factor*100:.0f}%)")

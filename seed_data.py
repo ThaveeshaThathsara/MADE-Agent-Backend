@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
 
@@ -32,7 +32,7 @@ sample_data = {
     "agreeableness": 0.8,
     "neuroticism": 0.5166666666666667
   },
-  "saved_at": datetime.now().isoformat()
+  "saved_at": datetime.now(timezone.utc).isoformat()
 }
 
 def seed_database():
