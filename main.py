@@ -32,10 +32,10 @@ ocean_collection = db["ocean_scores"]  # Collection for OCEAN scores
 tasks_collection = db["tasks"]         # Collection for Assigned Tasks
 
 print("=" * 60)
-print("🚀 FastAPI Backend Started!")
-print(f"📊 MongoDB Connected: {MONGO_URL}")
-print(f"📦 Database: bigfive")
-print(f"📁 Collection: ocean_scores")
+print(" FastAPI Backend Started!")
+print(f" MongoDB Connected: {MONGO_URL}")
+print(f" Database: bigfive")
+print(f" Collection: ocean_scores")
 print("=" * 60)
 
 # Data models
@@ -55,15 +55,15 @@ class OceanData(BaseModel):
 
 class TaskItem(BaseModel):
     task_name: str
-    task_description: Optional[str] = ""  # NEW: Detailed task description
-    uploaded_files: Optional[list] = []   # NEW: List of uploaded file paths
-    priority_level: Optional[str] = "MED" # NEW: High/Medium/Low label
+    task_description: Optional[str] = "" 
+    uploaded_files: Optional[list] = []  
+    priority_level: Optional[str] = "MED" 
     importance_kk: float
     required_time_trk: float
     available_time_tak: float
     report_id: str
     created_at: Optional[str] = None
-    status: Optional[str] = "pending"  # pending/running/completed/failed
+    status: Optional[str] = "pending"  
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     execution_log: Optional[list] = []
@@ -79,15 +79,13 @@ from adk_agent import execute_task_with_adk
 
 @app.post("/api/save-ocean-scores")
 async def save_ocean_scores(data: OceanData):
-    """
-    Save OCEAN scores to MongoDB and calculate P-Factor
-    """
+    
     try:
         print("\n" + "=" * 60)
-        print("📥 RECEIVED DATA FROM FRONTEND")
+        print(" RECEIVED DATA FROM FRONTEND")
         print("=" * 60)
-        print(f"🆔 Report ID: {data.report_id}")
-        print(f"⏰ Timestamp: {data.timestamp}")
+        print(f" Report ID: {data.report_id}")
+        print(f" Timestamp: {data.timestamp}")
         
         # Calculate P-Factor
         ocean_dict = {
@@ -98,11 +96,11 @@ async def save_ocean_scores(data: OceanData):
             "neuroticism": data.ocean_normalized.neuroticism
         }
         p_factor = calculate_p_factor(ocean_dict)
-        print(f"\n🧠 Calculated P-Factor: {p_factor}")
+        print(f"\n Calculated P-Factor: {p_factor}")
         
         # Calculate Retention for logging (but don't store it)
         retention_val, phase, _ = calculate_retention(p_factor, days=0)
-        print(f"📊 Calculated Retention (Day 0): {retention_val}")
+        print(f" Calculated Retention (Day 0): {retention_val}")
         
         # Calculate Confidence based on retention
         conf_val, conf_label = calculate_confidence(retention_val) 
@@ -115,8 +113,7 @@ async def save_ocean_scores(data: OceanData):
         urgency_val, urgency_msg = calculate_urgency(0.8, 2.0, 5.0)
         print(f"   Urgency: {urgency_msg}")
         
-        # Priority Calculation (S = 0.824 + 0.475U - 0.287P - 0.084R)
-        # Normalize urgency to 0-1 range for the formula (cap at 1.0)
+        # Priority Calculation 
         urgency_normalized = min(1.0, urgency_val)
         prio_val, prio_msg = calculate_priority(p_factor, urgency_normalized, retention_val)
         print(f"   Priority: {prio_msg}")
@@ -125,7 +122,7 @@ async def save_ocean_scores(data: OceanData):
         base_memory = "Initial data ingestion and personality assessment."
         response_text = generate_npc_response(base_memory, conf_label, phase, retention_val)
 
-        # Prepare document for MongoDB without retention fields
+        # document for MongoDB
         document = {
             "report_id": data.report_id,
             "timestamp": data.timestamp,
@@ -140,10 +137,9 @@ async def save_ocean_scores(data: OceanData):
             "generation_timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        # Insert into MongoDB
         result = ocean_collection.insert_one(document)
         
-        print(f"\n✅ SAVED TO MONGODB")
+        print(f"\n SAVED TO MONGODB")
         print(f"   MongoDB ID: {result.inserted_id}")
         print("=" * 60 + "\n")
         
@@ -157,16 +153,13 @@ async def save_ocean_scores(data: OceanData):
             }
         }
     except Exception as e:
-        print(f"\n❌ ERROR SAVING TO MONGODB: {str(e)}")
+        print(f"\n ERROR SAVING TO MONGODB: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/simulate-memory")
 async def simulate_memory(p_factor: float, days: float, strength: float = 2.8):
-    """
-    Simulate memory retention and confidence based on P-Factor and time.
-    """
+
     try:
-        # Using boilerplate functions now
         ret_val, phase, _ = calculate_retention(p_factor)
         ret_msg = (ret_val, phase)
         conf_val, conf_label = calculate_confidence(0.5) 
@@ -189,22 +182,20 @@ async def simulate_memory(p_factor: float, days: float, strength: float = 2.8):
 
 @app.get("/api/get-ocean-scores/{report_id}")
 async def get_ocean_scores(report_id: str):
-    """
-    Get OCEAN scores by report ID
-    """
+    
     try:
         print(f"\n🔍 Searching for report_id: {report_id}")
         
         result = ocean_collection.find_one({"report_id": report_id})
         
         if not result:
-            print(f"❌ Report not found: {report_id}\n")
+            print(f" Report not found: {report_id}\n")
             raise HTTPException(status_code=404, detail="Report not found")
         
         # Convert ObjectId to string
         result["_id"] = str(result["_id"])
         
-        print(f"✅ Found report: {report_id}")
+        print(f" Found report: {report_id}")
         print(f"   Normalized scores: O={result['ocean_normalized']['openness']:.3f}, "
               f"C={result['ocean_normalized']['conscientiousness']:.3f}, "
               f"E={result['ocean_normalized']['extraversion']:.3f}, "
@@ -218,14 +209,12 @@ async def get_ocean_scores(report_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error: {str(e)}\n")
+        print(f" Error: {str(e)}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/all-ocean-scores")
 async def get_all_ocean_scores():
-    """
-    Get all OCEAN scores from MongoDB
-    """
+    
     try:
         results = list(ocean_collection.find().sort("saved_at", -1))
         
@@ -233,7 +222,7 @@ async def get_all_ocean_scores():
         for result in results:
             result["_id"] = str(result["_id"])
         
-        print(f"\n📊 Retrieved {len(results)} OCEAN score records from MongoDB\n")
+        print(f"\n Retrieved {len(results)} OCEAN score records from MongoDB\n")
         
         return {
             "success": True,
@@ -241,21 +230,19 @@ async def get_all_ocean_scores():
             "data": results
         }
     except Exception as e:
-        print(f"❌ Error: {str(e)}\n")
+        print(f" Error: {str(e)}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/delete-ocean-scores/{report_id}")
 async def delete_ocean_scores(report_id: str):
-    """
-    Delete OCEAN scores by report ID
-    """
+    
     try:
         result = ocean_collection.delete_one({"report_id": report_id})
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Report not found")
         
-        print(f"🗑️ Deleted report: {report_id}\n")
+        print(f" Deleted report: {report_id}\n")
         
         return {
             "success": True,
@@ -264,25 +251,22 @@ async def delete_ocean_scores(report_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error: {str(e)}\n")
+        print(f" Error: {str(e)}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/save-task")
 async def save_task(task: TaskItem):
-    """
-    Save a new task delegation to MongoDB
-    """
+    
     try:
         task_dict = task.dict()
         task_dict["created_at"] = datetime.now(timezone.utc).isoformat()
         
-        # Ensure numeric types
         task_dict["importance_kk"] = float(task_dict["importance_kk"])
         task_dict["required_time_trk"] = float(task_dict["required_time_trk"])
         task_dict["available_time_tak"] = float(task_dict["available_time_tak"])
         
         result = tasks_collection.insert_one(task_dict)
-        print(f"📝 Task Assigned: {task.task_name} | ID: {result.inserted_id}")
+        print(f" Task Assigned: {task.task_name} | ID: {result.inserted_id}")
         
         return {
             "success": True,
@@ -290,14 +274,12 @@ async def save_task(task: TaskItem):
             "task_id": str(result.inserted_id)
         }
     except Exception as e:
-        print(f"❌ Error saving task: {str(e)}")
+        print(f" Error saving task: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get-tasks/{report_id}")
 async def get_tasks(report_id: str):
-    """
-    Retrieve all tasks for a specific report_id
-    """
+    
     try:
         tasks = list(tasks_collection.find({"report_id": report_id}).sort("created_at", -1))
         for t in tasks:
@@ -308,16 +290,13 @@ async def get_tasks(report_id: str):
             "tasks": tasks
         }
     except Exception as e:
-        print(f"❌ Error fetching tasks: {str(e)}")
+        print(f" Error fetching tasks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-npc-response/{report_id}")
 async def generate_response(report_id: str, base_memory: str = "The last assigned task"):
-    """
-    Generate a linguistically accurate NPC response based on current metrics.
-    """
+    
     try:
-        # Find the most recent record for this report_id
         report = ocean_collection.find_one({"report_id": report_id}, sort=[("saved_at", -1)])
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
@@ -332,7 +311,6 @@ async def generate_response(report_id: str, base_memory: str = "The last assigne
         # Generate Linguistic Response
         response_text = generate_npc_response(base_memory, conf_label, phase, retention)
         
-        # Persist to DB - Target the specific document using its unique _id
         update_data = {
             "last_linguistic_response": response_text,
             "confidence_at_generation": conf_val,
@@ -342,7 +320,7 @@ async def generate_response(report_id: str, base_memory: str = "The last assigne
         
         ocean_collection.update_one({"_id": report["_id"]}, {"$set": update_data})
         
-        print(f"🗣️ Generated Response for {report_id}: {response_text[:30]}...")
+        print(f" Generated Response for {report_id}: {response_text[:30]}...")
         
         return {
             "success": True,
@@ -355,21 +333,18 @@ async def generate_response(report_id: str, base_memory: str = "The last assigne
             }
         }
     except Exception as e:
-        print(f"❌ Generation Error: {str(e)}")
+        print(f" Generation Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/adk/execute-task/{report_id}")
 async def execute_task_stream(report_id: str, task: str):
-    """
-    Stream ADK's work progress to frontend using SSE
-    """
+    
     def event_stream():
         try:
             for progress_text in execute_task_with_adk(report_id, task):
-                # SSE format: "data: {content}\n\n"
                 yield f"data: {progress_text}\n\n"
         except Exception as e:
-            yield f"data: ❌ Stream Error: {str(e)}\n\n"
+            yield f"data:  Stream Error: {str(e)}\n\n"
     
     return StreamingResponse(
         event_stream(), 
@@ -383,7 +358,6 @@ async def execute_task_stream(report_id: str, task: str):
         }
     )
 
-# Fix the get_npc_state endpoint (you had a typo)
 @app.get("/api/adk/get-npc-state/{report_id}")
 async def get_npc_state_for_adk(report_id: str):
     candidate = ocean_collection.find_one({"report_id": report_id})
@@ -407,20 +381,17 @@ async def get_npc_state_for_adk(report_id: str):
         "confidence": conf_val,
         "confidence_label": conf_label,
         "phase": phase,
-        "p_factor": candidate["p_factor"],  # FIX: was "candidate" (typo)
+        "p_factor": candidate["p_factor"], 
         "active_task": active_task["task_name"] if active_task else None,
         "should_struggle": retention < 0.40,
         "is_confused": retention < 0.30
     }
 
-# Global dictionary to track running tasks
 running_tasks = {}
 
 @app.get("/api/task-status/{task_id}")
 async def get_task_status(task_id: str):
-    """
-    Get current status and execution log for a specific task
-    """
+    
     try:
         from bson import ObjectId
         task = tasks_collection.find_one({"_id": ObjectId(task_id)})
@@ -428,7 +399,6 @@ async def get_task_status(task_id: str):
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        # Convert ObjectId to string for JSON serialization
         task["_id"] = str(task["_id"])
         
         return {
@@ -441,9 +411,7 @@ async def get_task_status(task_id: str):
 
 @app.post("/api/start-task/{task_id}")
 async def start_task_execution(task_id: str):
-    """
-    Start task execution in background thread
-    """
+    
     try:
         from bson import ObjectId
         task = tasks_collection.find_one({"_id": ObjectId(task_id)})
@@ -451,14 +419,12 @@ async def start_task_execution(task_id: str):
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        # Check if already running
         if task.get("status") == "running":
             return {
                 "success": False,
                 "message": "Task is already running"
             }
         
-        # Update status to running
         tasks_collection.update_one(
             {"_id": ObjectId(task_id)},
             {
@@ -469,19 +435,16 @@ async def start_task_execution(task_id: str):
             }
         )
         
-        # Start execution in background thread
         def execute_in_background():
             try:
                 execution_log = []
                 for progress in execute_task_with_adk(task["report_id"], task["task_name"]):
                     execution_log.append(progress)
-                    # Update log in real-time
                     tasks_collection.update_one(
                         {"_id": ObjectId(task_id)},
                         {"$set": {"execution_log": execution_log}}
                     )
                 
-                # Mark as completed
                 tasks_collection.update_one(
                     {"_id": ObjectId(task_id)},
                     {
@@ -500,7 +463,7 @@ async def start_task_execution(task_id: str):
                         "$set": {
                             "status": "failed",
                             "completed_at": datetime.now(timezone.utc).isoformat(),
-                            "execution_log": execution_log + [f"❌ Error: {str(e)}"]
+                            "execution_log": execution_log + [f" Error: {str(e)}"]
                         }
                     }
                 )
@@ -521,9 +484,7 @@ async def start_task_execution(task_id: str):
 
 @app.delete("/api/delete-task/{task_id}")
 async def delete_task(task_id: str):
-    """
-    Delete a task by its ID
-    """
+   
     try:
         from bson import ObjectId
         result = tasks_collection.delete_one({"_id": ObjectId(task_id)})
@@ -531,7 +492,7 @@ async def delete_task(task_id: str):
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        print(f"🗑️ Deleted task: {task_id}")
+        print(f" Deleted task: {task_id}")
         
         return {
             "success": True,
@@ -543,10 +504,7 @@ async def delete_task(task_id: str):
 
 @app.get("/api/adk/execute-task-stream/{task_id}")
 async def execute_task_stream_by_id(task_id: str):
-    """
-    Stream task execution progress using SSE (for new tab monitoring)
-    Saves execution log to MongoDB for persistence on refresh
-    """
+
     from bson import ObjectId
     
     task = tasks_collection.find_one({"_id": ObjectId(task_id)})
@@ -555,11 +513,10 @@ async def execute_task_stream_by_id(task_id: str):
     
     def event_stream():
         try:
-            # If task is already completed, replay the log
             if task.get("status") == "completed":
                 for line in task.get("execution_log", []):
                     yield f"data: {line}\n\n"
-                yield f"data: ✅ Task completed (replaying log)\n\n"
+                yield f"data:  Task completed (replaying log)\n\n"
                 return
             
             # Mark task as running
@@ -591,10 +548,10 @@ async def execute_task_stream_by_id(task_id: str):
                     "execution_log": execution_log
                 }}
             )
-            print(f"✅ Task {task_id} completed. Log saved ({len(execution_log)} lines)")
+            print(f" Task {task_id} completed. Log saved ({len(execution_log)} lines)")
             
         except Exception as e:
-            yield f"data: ❌ Stream Error: {str(e)}\n\n"
+            yield f"data:  Stream Error: {str(e)}\n\n"
             tasks_collection.update_one(
                 {"_id": ObjectId(task_id)},
                 {"$set": {"status": "failed"}}
@@ -617,10 +574,10 @@ class AudioUrlUpdate(BaseModel):
 
 @app.put("/api/task-audio/{task_id}")
 async def save_task_audio_url(task_id: str, update: AudioUrlUpdate):
-    """Save generated TTS audio URL to task for persistence on refresh"""
+
     try:
         from bson import ObjectId
-        print(f"🔊 Saving audio URL for task {task_id}: {update.audio_url}")
+        print(f" Saving audio URL for task {task_id}: {update.audio_url}")
         
         result = tasks_collection.update_one(
             {"_id": ObjectId(task_id)},
@@ -628,18 +585,18 @@ async def save_task_audio_url(task_id: str, update: AudioUrlUpdate):
         )
         
         if result.matched_count == 0:
-            print(f"❌ Task {task_id} not found for audio update")
+            print(f" Task {task_id} not found for audio update")
             raise HTTPException(status_code=404, detail="Task not found")
             
-        print(f"✅ Audio URL saved for task {task_id}")
+        print(f" Audio URL saved for task {task_id}")
         return {"success": True}
     except Exception as e:
-        print(f"❌ Error saving audio URL: {e}")
+        print(f" Error saving audio URL: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload-task-file")
 async def upload_task_file(file: UploadFile = File(...)):
-    """Upload image file for task assignment"""
+    
     try:
         upload_dir = "uploads"
         os.makedirs(upload_dir, exist_ok=True)
@@ -652,7 +609,7 @@ async def upload_task_file(file: UploadFile = File(...)):
             content = await file.read()
             f.write(content)
         
-        print(f"📁 File uploaded: {file_path}")
+        print(f" File uploaded: {file_path}")
         
         return {
             "success": True,
@@ -664,9 +621,7 @@ async def upload_task_file(file: UploadFile = File(...)):
 
 @app.get("/")
 async def root():
-    """
-    API documentation
-    """
+    
     return {
         "message": "Big Five OCEAN API with MongoDB",
         "status": "running",
@@ -684,11 +639,8 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """
-    Health check endpoint
-    """
+   
     try:
-        # Test MongoDB connection
         client.server_info()
         return {
             "status": "healthy",
@@ -705,7 +657,7 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n🔥 Starting FastAPI server...")
-    print("📍 Server will run on: http://localhost:8000")
-    print("📚 API docs available at: http://localhost:8000/docs\n")
+    print("\n Starting FastAPI server...")
+    print(" Server will run on: http://localhost:8000")
+    print(" API docs available at: http://localhost:8000/docs\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)

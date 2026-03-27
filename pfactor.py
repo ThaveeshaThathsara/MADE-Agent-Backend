@@ -1,56 +1,7 @@
-# import math
-# import random
-
-# def calculate_p_factor(normalized_scores):
-#     """
-#     Calculate the P-factor based on OCEAN personality traits.
-#     Formula: P = Pbase + (w1*O + w2*C + w3*E + w4*A + w5*N)
-#     Pbase = 1.0
-#     Weights (Sutin et al., 2022 & Defaults):
-#       O: 0.235
-#       C: 0.229
-#       E: 0.1   (Default positive association)
-#       A: 0.1   (Default positive association)
-#       N: -0.192
-#     """
-#     # Extract scores (expecting 0-1 range)
-#     O = normalized_scores.get('openness', 0.5)
-#     C = normalized_scores.get('conscientiousness', 0.5)
-#     E = normalized_scores.get('extraversion', 0.5)
-#     A = normalized_scores.get('agreeableness', 0.5)
-#     N = normalized_scores.get('neuroticism', 0.5)
-
-#     # Calculate P-factor
-#     # P = 1.0 + (0.235 * O) + (0.229 * C) + (0.1 * E) + (0.1 * A) + (-0.192 * N)
-#     # Note: N is subtracted effectively since weight is negative
-#     p_factor = 1.0 + (0.235 * O) + (0.229 * C) + (0.170 * E) + (0.076 * A) - (0.192 * N)
-
-#     # Clamp P-factor between 0.5 and 1.5 to ensure valid retention probability
-#     return max(0.5, min(1.5, round(p_factor, 4)))
-
-# pfactor.py
 import math
 
 def calculate_p_factor(normalized_scores):
-    """
-    Calculate the P-factor based on OCEAN personality traits.
-    Formula: P = Pbase + (w1*O + w2*C + w3*E + w4*A + w5*N)
-    
-    Pbase = 1.0
-    Weights from Sutin et al. (2022) meta-analysis:
-      O: +0.235  (95% CI: 0.119, 0.351; p < .001)
-      C: +0.229  (95% CI: 0.151, 0.308; p < .001)
-      E: +0.170  (95% CI: 0.117, 0.223; p < .001)
-      A: +0.076  (95% CI: 0.021, 0.132; p = .007)
-      N: -0.192  (95% CI: -0.266, -0.117; p < .001)
-    
-    Args:
-        normalized_scores (dict): Dictionary with OCEAN scores in 0-1 range
-        
-    Returns:
-        float: P-factor multiplier (clamped between 0.5 and 1.5)
-    """
-    # Extract scores (default to 0.5 if not provided)
+
     O = normalized_scores.get('openness', 0.5)
     C = normalized_scores.get('conscientiousness', 0.5)
     E = normalized_scores.get('extraversion', 0.5)
@@ -58,23 +9,13 @@ def calculate_p_factor(normalized_scores):
     N = normalized_scores.get('neuroticism', 0.5)
 
     # Calculate P-factor using exact meta-analytic weights
-    # P = 1.0 + (0.235 * O) + (0.229 * C) + (0.170 * E) + (0.076 * A) - (0.192 * N)
     p_factor = 1.0 + (0.235 * O) + (0.229 * C) + (0.170 * E) + (0.076 * A) - (0.192 * N)
 
-    # Clamp P-factor between 0.5 and 1.5 to ensure valid retention range
-    return max(0.5, min(1.5, round(p_factor, 4)))
+    return round(p_factor, 4)
 
 
 def calculate_p_factor_with_breakdown(normalized_scores):
-    """
-    Calculate P-factor and show contribution breakdown for debugging/analysis.
     
-    Args:
-        normalized_scores (dict): Dictionary with OCEAN scores in 0-1 range
-        
-    Returns:
-        dict: P-factor and breakdown of contributions
-    """
     O = normalized_scores.get('openness', 0.5)
     C = normalized_scores.get('conscientiousness', 0.5)
     E = normalized_scores.get('extraversion', 0.5)

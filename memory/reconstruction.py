@@ -1,21 +1,9 @@
 import random
 
 def reconstruct_memory(retention):
-    """
-    Reconstruct memory with random variation.
-    Formula: Reconstruction = Retention ± random(0, 0.15) (Weise et al., 2024)
-    SD = 0.15 on 0-1 scale.
-    
-    Args:
-        retention (float): The current memory retention level (0.0 to 1.0).
-        
-    Returns:
-        float: Reconstructed memory score (0.0 to 1.0).
-        str: Reconstruction label (High, Medium, Low, Very Low, Confused).
-    """
+   
     print(f"Memory reconstruction triggered for Retention: {retention}")
     
-    # Random variation between -0.15 and +0.15
     variation = random.uniform(-0.15, 0.15)
     reconstruction = retention + variation
     

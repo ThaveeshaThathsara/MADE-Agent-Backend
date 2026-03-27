@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 # MongoDB Connection
@@ -12,7 +11,7 @@ client = MongoClient(MONGO_URL)
 db = client["bigfive"]
 ocean_collection = db["ocean_scores"]
 
-# Sample Data provided by user
+# Sample Data
 sample_data = {
   "report_id": "697db74afc99986c4c78cc96",
   "timestamp": "2026-01-31T08:03:22.735Z",
@@ -37,22 +36,22 @@ sample_data = {
 
 def seed_database():
     try:
-        # Check if report_id exists to avoid duplicates
+    
         existing = ocean_collection.find_one({"report_id": sample_data["report_id"]})
         if existing:
-            print(f"⚠️ Report {sample_data['report_id']} already exists. Updating...")
+            print(f" Report {sample_data['report_id']} already exists. Updating...")
             ocean_collection.update_one(
                 {"report_id": sample_data["report_id"]},
                 {"$set": sample_data}
             )
         else:
             ocean_collection.insert_one(sample_data)
-            print(f"✅ inserted sample data for Report {sample_data['report_id']}")
+            print(f" inserted sample data for Report {sample_data['report_id']}")
             
-        print("🎉 Database seeded successfully!")
+        print(" Database seeded successfully!")
         
     except Exception as e:
-        print(f"❌ Error seeding database: {e}")
+        print(f" Error seeding database: {e}")
 
 if __name__ == "__main__":
     seed_database()
