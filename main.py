@@ -122,9 +122,16 @@ async def save_ocean_scores(data: OceanData):
         base_memory = "Initial data ingestion and personality assessment."
         response_text = generate_npc_response(base_memory, conf_label, phase, retention_val)
 
+        # Get next persistent agent_number
+        highest_agent = ocean_collection.find_one({}, sort=[("agent_number", -1)])
+        agent_number = 1
+        if highest_agent and "agent_number" in highest_agent:
+            agent_number = highest_agent["agent_number"] + 1
+
         # document for MongoDB
         document = {
             "report_id": data.report_id,
+            "agent_number": agent_number,
             "timestamp": data.timestamp,
             "p_factor": p_factor,
             "priority_mock": prio_val,
