@@ -655,6 +655,22 @@ async def health_check():
             "error": str(e)
         }
 
+@app.delete("/api/delete-agent/{report_id}")
+async def delete_agent(report_id: str):
+    try:
+        agent_result = ocean_collection.delete_one({"report_id": report_id})
+        tasks_result = tasks_collection.delete_many({"report_id": report_id})
+        
+        if agent_result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        
+        return {
+            "success": True,
+            "message": f"Agent and {tasks_result.deleted_count} tasks deleted"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     print("\n Starting FastAPI server...")
