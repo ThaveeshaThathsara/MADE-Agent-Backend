@@ -122,11 +122,16 @@ async def save_ocean_scores(data: OceanData):
         base_memory = "Initial data ingestion and personality assessment."
         response_text = generate_npc_response(base_memory, conf_label, phase, retention_val)
 
-        # Get next persistent agent_number
-        highest_agent = ocean_collection.find_one({}, sort=[("agent_number", -1)])
-        agent_number = 1
-        if highest_agent and "agent_number" in highest_agent:
-            agent_number = highest_agent["agent_number"] + 1
+        # Get or assign persistent agent_number
+        existing_agent = ocean_collection.find_one({"report_id": data.report_id})
+        
+        if existing_agent and "agent_number" in existing_agent:
+            agent_number = existing_agent["agent_number"]
+        else:
+            highest_agent = ocean_collection.find_one({"agent_number": {"$exists": True}}, sort=[("agent_number", -1)])
+            agent_number = 1
+            if highest_agent:
+                agent_number = highest_agent["agent_number"] + 1
 
         # document for MongoDB
         document = {
