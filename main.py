@@ -658,7 +658,8 @@ async def health_check():
 @app.delete("/api/delete-agent/{report_id}")
 async def delete_agent(report_id: str):
     try:
-        agent_result = ocean_collection.delete_one({"report_id": report_id})
+        # User might have submitted the test multiple times leading to duplicate report_ids
+        agent_result = ocean_collection.delete_many({"report_id": report_id})
         tasks_result = tasks_collection.delete_many({"report_id": report_id})
         
         if agent_result.deleted_count == 0:
@@ -666,7 +667,7 @@ async def delete_agent(report_id: str):
         
         return {
             "success": True,
-            "message": f"Agent and {tasks_result.deleted_count} tasks deleted"
+            "message": f"Deleted {agent_result.deleted_count} agent records and {tasks_result.deleted_count} tasks"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
