@@ -14,7 +14,6 @@ def calculate_priority(p_factor, urgency, retention):
    
     print(f"Priority calculation triggered: P={p_factor}, U={urgency}, R={retention}")
     
-    # Empirically validated coefficients
     INTERCEPT = 0.824
     BETA_URGENCY = 0.475
     BETA_PFACTOR = -0.287
@@ -33,17 +32,17 @@ def get_memory_strength(priority_level):
     
     STRENGTH_MAP = {
         'HIGH': {
-            's_fast': 2.50,   # Slow decay — NPC retains high-priority tasks longer
+            's_fast': 2.50,   # Slow decay
             's_slow': 6.00,
             'label': 'Strong Memory (Slow Decay)'
         },
         'MED': {
-            's_fast': 1.47,   # Default — Yadav (2025) baseline
+            's_fast': 1.47,   # Default
             's_slow': 4.07,
             'label': 'Normal Memory (Default Decay)'
         },
         'LOW': {
-            's_fast': 0.80,   # Fast decay — NPC forgets low-priority tasks quickly
+            's_fast': 0.80,   # Fast decay
             's_slow': 2.00,
             'label': 'Weak Memory (Fast Decay)'
         }

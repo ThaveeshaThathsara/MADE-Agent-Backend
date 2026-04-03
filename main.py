@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import asyncio
 import threading
 import uuid
+from memory.priority import get_memory_strength
 # Load environment variables
 load_dotenv()
 
@@ -67,6 +68,7 @@ class TaskItem(BaseModel):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     execution_log: Optional[list] = []
+    mode: Optional[str] = "default"
 
 from pfactor import calculate_p_factor
 from memory.retention import calculate_retention, calculate_retention_from_timestamp
@@ -291,9 +293,14 @@ async def save_task(task: TaskItem):
 
 @app.get("/api/get-tasks/{report_id}")
 async def get_tasks(report_id: str):
+
+    query = {
+            "report_id": report_id, 
+            "mode": {"$ne": "priority"} 
+    }
     
     try:
-        tasks = list(tasks_collection.find({"report_id": report_id}).sort("created_at", -1))
+        tasks = list(tasks_collection.find(query).sort("created_at", -1))
         for t in tasks:
             t["_id"] = str(t["_id"])
         
@@ -304,6 +311,40 @@ async def get_tasks(report_id: str):
     except Exception as e:
         print(f" Error fetching tasks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get-priority-tasks/{report_id}")
+async def get_priority_tasks(report_id: str):
+    """Dedicated fetch for only priority panel tasks."""
+    try:
+        # ONLY fetch priority tasks
+        query = {"report_id": report_id, "mode": "priority"}
+        tasks = list(tasks_collection.find(query).sort("created_at", -1))
+        for t in tasks: 
+            t["_id"] = str(t["_id"])
+        
+        return {"success": True, "tasks": tasks}
+    except Exception as e:
+        print(f" Error fetching priority tasks: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/save-priority-task")
+async def save_priority_task(task: TaskItem):
+    """Specifically used by Priority Panel to ensure tasks are correctly tagged."""
+    try:
+        task_dict = task.dict()
+        task_dict["created_at"] = datetime.now(timezone.utc).isoformat()
+        task_dict["mode"] = "priority" # FORCE PRIORITY MODE
+        
+        # Numeric conversions
+        task_dict["importance_kk"] = float(task_dict["importance_kk"])
+        task_dict["required_time_trk"] = float(task_dict["required_time_trk"])
+        task_dict["available_time_tak"] = float(task_dict["available_time_tak"])
+        
+        result = tasks_collection.insert_one(task_dict)
+        return {"success": True, "task_id": str(result.inserted_id)}
+    except Exception as e:
+        print(f" Error saving priority task: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))        
 
 @app.post("/api/generate-npc-response/{report_id}")
 async def generate_response(report_id: str, base_memory: str = "The last assigned task"):
@@ -370,17 +411,54 @@ async def execute_task_stream(report_id: str, task: str):
         }
     )
 
+# @app.get("/api/adk/get-npc-state/{report_id}")
+# async def get_npc_state_for_adk(report_id: str):
+#     candidate = ocean_collection.find_one({"report_id": report_id})
+#     if not candidate:
+#         raise HTTPException(status_code=404, detail="NPC not found")
+
+#     retention, _, phase = calculate_retention_from_timestamp(
+#         candidate["p_factor"], 
+#         datetime.fromisoformat(candidate["saved_at"])
+#     )    
+
+#     conf_val, conf_label = calculate_confidence(retention)
+
+#     active_task = tasks_collection.find_one(
+#         {"report_id": report_id}, 
+#         sort=[("created_at", -1)]
+#     )
+    
+#     return {
+#         "retention": retention,
+#         "confidence": conf_val,
+#         "confidence_label": conf_label,
+#         "phase": phase,
+#         "p_factor": candidate["p_factor"], 
+#         "active_task": active_task["task_name"] if active_task else None,
+#         "should_struggle": retention < 0.40,
+#         "is_confused": retention < 0.30
+#     }
+
 @app.get("/api/adk/get-npc-state/{report_id}")
 async def get_npc_state_for_adk(report_id: str):
     candidate = ocean_collection.find_one({"report_id": report_id})
     if not candidate:
         raise HTTPException(status_code=404, detail="NPC not found")
 
+    p_factor = candidate["p_factor"]
+    
+    # Calculate raw retention
     retention, _, phase = calculate_retention_from_timestamp(
-        candidate["p_factor"], 
+        p_factor, 
         datetime.fromisoformat(candidate["saved_at"])
     )    
 
+    # 🚀 EXACT UI MATCH: Just cap at 100%. Do NOT divide by p_factor!
+    display_pct = min(100.0, retention * 100.0)
+    retention_for_adk = display_pct / 100.0
+
+    # Confidence uses raw retention
     conf_val, conf_label = calculate_confidence(retention)
 
     active_task = tasks_collection.find_one(
@@ -389,16 +467,15 @@ async def get_npc_state_for_adk(report_id: str):
     )
     
     return {
-        "retention": retention,
+        "retention": retention_for_adk,  # This will now perfectly match the UI!
         "confidence": conf_val,
         "confidence_label": conf_label,
         "phase": phase,
-        "p_factor": candidate["p_factor"], 
+        "p_factor": p_factor, 
         "active_task": active_task["task_name"] if active_task else None,
-        "should_struggle": retention < 0.40,
-        "is_confused": retention < 0.30
+        "should_struggle": retention_for_adk < 0.40,
+        "is_confused": retention_for_adk < 0.30
     }
-
 running_tasks = {}
 
 @app.get("/api/task-status/{task_id}")
@@ -514,8 +591,75 @@ async def delete_task(task_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# @app.get("/api/adk/execute-task-stream/{task_id}")
+# async def execute_task_stream_by_id(task_id: str):
+
+#     from bson import ObjectId
+    
+#     task = tasks_collection.find_one({"_id": ObjectId(task_id)})
+#     if not task:
+#         raise HTTPException(status_code=404, detail="Task not found")
+    
+#     def event_stream():
+#         try:
+#             if task.get("status") == "completed":
+#                 for line in task.get("execution_log", []):
+#                     yield f"data: {line}\n\n"
+#                 yield f"data:  Task completed (replaying log)\n\n"
+#                 return
+            
+#             # Mark task as running
+#             tasks_collection.update_one(
+#                 {"_id": ObjectId(task_id)},
+#                 {"$set": {"status": "running", "started_at": datetime.now(timezone.utc).isoformat()}}
+#             )
+            
+#             # Stream live execution and collect logs
+#             execution_log = []
+#             task_desc = task.get("task_description", "")
+#             image_paths = task.get("uploaded_files", [])
+            
+#             for progress_text in execute_task_with_adk(
+#                 task["report_id"], 
+#                 task["task_name"],
+#                 task_description=task_desc,
+#                 image_paths=image_paths
+#             ):
+#                 execution_log.append(progress_text)
+#                 yield f"data: {progress_text}\n\n"
+            
+#             # Save execution log and mark as completed
+#             tasks_collection.update_one(
+#                 {"_id": ObjectId(task_id)},
+#                 {"$set": {
+#                     "status": "completed",
+#                     "completed_at": datetime.now(timezone.utc).isoformat(),
+#                     "execution_log": execution_log
+#                 }}
+#             )
+#             print(f" Task {task_id} completed. Log saved ({len(execution_log)} lines)")
+            
+#         except Exception as e:
+#             yield f"data:  Stream Error: {str(e)}\n\n"
+#             tasks_collection.update_one(
+#                 {"_id": ObjectId(task_id)},
+#                 {"$set": {"status": "failed"}}
+#             )
+    
+#     return StreamingResponse(
+#         event_stream(), 
+#         media_type="text/event-stream",
+#         headers={
+#             "Cache-Control": "no-cache",
+#             "Connection": "keep-alive",
+#             "Access-Control-Allow-Origin": "*",
+#             "Access-Control-Allow-Methods": "GET",
+#             "Access-Control-Allow-Headers": "*",
+#         }
+#     )
+
 @app.get("/api/adk/execute-task-stream/{task_id}")
-async def execute_task_stream_by_id(task_id: str):
+async def execute_task_stream_by_id(task_id: str, mode: str = "default"):
 
     from bson import ObjectId
     
@@ -525,6 +669,7 @@ async def execute_task_stream_by_id(task_id: str):
     
     def event_stream():
         try:
+            # If already done, just replay the saved logs!
             if task.get("status") == "completed":
                 for line in task.get("execution_log", []):
                     yield f"data: {line}\n\n"
@@ -532,26 +677,104 @@ async def execute_task_stream_by_id(task_id: str):
                 return
             
             # Mark task as running
+            now_iso = datetime.now(timezone.utc).isoformat()
             tasks_collection.update_one(
                 {"_id": ObjectId(task_id)},
-                {"$set": {"status": "running", "started_at": datetime.now(timezone.utc).isoformat()}}
+                {"$set": {"status": "running", "started_at": task.get("started_at") or now_iso}}
             )
             
-            # Stream live execution and collect logs
             execution_log = []
             task_desc = task.get("task_description", "")
             image_paths = task.get("uploaded_files", [])
             
+            # --- Task-Specific Cognitive State (Only for Priority Mode) ---
+            task_retention = None
+            task_confidence_label = None
+            
+            if mode == "priority":
+                agent = ocean_collection.find_one({"report_id": task["report_id"]})
+                if agent and "p_factor" in agent:
+                    p_factor = agent["p_factor"]
+                    prio = task.get("priority_level", "MED")
+
+                    # s_f, s_s = (2.0, 5.5) if prio == "HIGH" else (0.8, 2.5) if prio == "LOW" else (1.47, 4.07)
+                    
+                    strength = get_memory_strength(prio)
+                    s_f = strength['s_fast']
+                    s_s = strength['s_slow']
+                    
+                    # started_str = task.get("started_at") or now_iso
+                    # started = datetime.fromisoformat(started_str)
+                    # elapsed_days = (datetime.now(timezone.utc) - started).total_seconds() / 60.0
+
+                    # saved_str = task.get("saved_at") or now_iso
+                    # start_time = datetime.fromisoformat(saved_str)
+
+                    # # elapsed_days = (datetime.now(timezone.utc) - created_time).total_seconds() / 60.0
+                    
+                    # # ret, _phase, _ = calculate_retention(p_factor, elapsed_days, s_fast=s_f, s_slow=s_s)
+
+                    # elapsed_days = (datetime.now(timezone.utc) - start_time).total_seconds() / 60.0
+                    
+                    # ret, _phase, _ = calculate_retention(p_factor, elapsed_days, s_fast=s_f, s_slow=s_s)
+
+                    oldest_executed_task = tasks_collection.find_one(
+                        {
+                            "report_id": task["report_id"], 
+                            "mode": "priority", 
+                            "priority_level": prio,
+                            "started_at": {"$exists": True, "$ne": None}
+                        },
+                        sort=[("created_at", 1)]  # 1 means oldest first
+                    )
+                    
+                    if oldest_executed_task:
+                        start_str = oldest_executed_task["started_at"]
+                        start_time = datetime.fromisoformat(start_str)
+                        elapsed_days = (datetime.now(timezone.utc) - start_time).total_seconds() / 60.0
+                        
+                        ret, _phase, _ = calculate_retention(p_factor, elapsed_days, s_fast=s_f, s_slow=s_s)
+                        
+                        raw_pct = (ret / p_factor) * 100
+                        pct = min(100, max(30, raw_pct))
+                        clamped_retention = (pct / 100) * p_factor
+                    else:
+                        # If this is the very first execution ever, it's 100%
+                        pct = 100.0
+                        clamped_retention = p_factor
+                    
+                    # raw_pct = (ret / p_factor) * 100
+                    # pct = min(100, max(30, raw_pct))
+                    # clamped_retention = (pct / 100) * p_factor
+                    
+                    _, conf_label = calculate_confidence(clamped_retention)
+                    # task_retention = clamped_retention
+                    # task_confidence_label = conf_label
+                    task_retention = pct / 100.0  
+                    task_confidence_label = conf_label
+
+            # --- Execute the ADK and LIVE SAVE ---
             for progress_text in execute_task_with_adk(
                 task["report_id"], 
                 task["task_name"],
                 task_description=task_desc,
-                image_paths=image_paths
+                image_paths=image_paths,
+
+                task_retention=task_retention,
+                task_confidence=task_confidence_label
             ):
                 execution_log.append(progress_text)
+                
+                # 🚀 CRITICAL FIX: Live-save to MongoDB on every step!
+                # Now, if you refresh the page, the logs are safely in the database.
+                tasks_collection.update_one(
+                    {"_id": ObjectId(task_id)},
+                    {"$set": {"execution_log": execution_log}}
+                )
+                
                 yield f"data: {progress_text}\n\n"
             
-            # Save execution log and mark as completed
+            # Final Save when completely done
             tasks_collection.update_one(
                 {"_id": ObjectId(task_id)},
                 {"$set": {

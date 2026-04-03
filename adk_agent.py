@@ -31,7 +31,7 @@ except Exception as e:
     print(f" Failed to initialize Gemini: {e}")
     client = None
 
-def execute_task_with_adk(report_id: str, task: str, task_description: str = "", image_paths: list = []):
+def execute_task_with_adk(report_id: str, task: str, task_description: str = "", image_paths: list = [],task_retention: float = None, task_confidence: str = None):
     """
     Execute task using Google Gemini with MADE cognitive state
     Supports multimodal input (text + images)
@@ -44,18 +44,28 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
     
     # Step 1: Get cognitive state from MADE backend
     try:
-        port = os.getenv("PORT", "8000")
-        state_response = requests.get(f"http://localhost:{port}/api/adk/get-npc-state/{report_id}")
-        state_response.raise_for_status()
-        state = state_response.json()
-        
-        retention = state.get("retention", 0)
-        confidence = state.get("confidence_label", "Unknown")
-        should_struggle = state.get("should_struggle", False)
-        is_confused = state.get("is_confused", False)
-        p_factor = state.get("p_factor", 1.0)
-        
-        yield f" Cognitive State Loaded: Retention={retention*100:.1f}%, Confidence={confidence}"
+        if task_retention is not None and task_confidence is not None:
+            # USE PRIORITY PANEL RETENTION
+            retention = task_retention
+            confidence = task_confidence
+            should_struggle = retention < 0.40
+            is_confused = retention < 0.30
+            p_factor = 1.0 
+            yield f" Cognitive State Loaded [PRIORITY MODE]: Retention={retention*100:.1f}%, Confidence={confidence}"
+        else:
+            # USE DASHBOARD DEFAULT RETENTION
+            port = os.getenv("PORT", "8000")
+            state_response = requests.get(f"http://localhost:{port}/api/adk/get-npc-state/{report_id}")
+            state_response.raise_for_status()
+            state = state_response.json()
+            
+            retention = state.get("retention", 0)
+            confidence = state.get("confidence_label", "Unknown")
+            should_struggle = state.get("should_struggle", False)
+            is_confused = state.get("is_confused", False)
+            p_factor = state.get("p_factor", 1.0)
+            
+            yield f" Cognitive State Loaded [GLOBAL MODE]: Retention={retention*100:.1f}%, Confidence={confidence}"
         
     except Exception as e:
         yield f" Failed to fetch cognitive state: {str(e)}"
