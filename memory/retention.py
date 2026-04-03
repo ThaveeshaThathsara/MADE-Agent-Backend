@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pymongo import MongoClient
 
 # Research-Validated Constants
-S_FAST = 1.47   # Yadav (2025) Fast decay
-S_SLOW = 4.07   # Yadav (2025) Slow decay  
+S_FAST = 1.47   # Fast decay
+S_SLOW = 4.07   # Slow decay  
 TRANSITION_THRESHOLD = 0.40  # Kornell et al. (2011)
 STOP_THRESHOLD = 0.30        # Parks & Yonelinas (2009)
 
@@ -24,17 +24,15 @@ def calculate_retention(p_factor, days=0, s_fast=None, s_slow=None, **kwargs):
     if r_fast >= TRANSITION_THRESHOLD:
         return round(r_fast, 4), "Phase 1 (Fast)", days
     
-    # EXACT transition time
     t_transition = -s_f * math.log(TRANSITION_THRESHOLD / p_factor)
     
-    # PHASE 2: Continue from EXACT transition point
     time_in_slow = days - t_transition
     r_slow = TRANSITION_THRESHOLD * math.exp(-time_in_slow / s_s)
     
     return round(max(STOP_THRESHOLD, r_slow), 4), "Phase 2 (Slow)", time_in_slow
 
 def calculate_retention_from_timestamp(p_factor, created_at, game_time_scale=60, **kwargs):
-    """Convert real time → game days. Accepts **kwargs."""
+    
     time_delta = datetime.now(timezone.utc) - created_at
     real_seconds = time_delta.total_seconds()
     game_days = real_seconds / game_time_scale  # 60sec = 1 game day
@@ -71,10 +69,8 @@ def start_monitor(report_id):
         while True:
             retention, debug, phase = calculate_retention_from_timestamp(p_factor, start_time)
             
-            # 🆕 DISPLAY AS PERCENTAGE (0-100%)
             display_pct = min(100, retention * 100)  # Cap at 100%
             
-            # Behavioral status
             if retention <= STOP_THRESHOLD:
                 status, color = " RECONSTRUCTION", "\033[91m"
             elif retention < TRANSITION_THRESHOLD:
@@ -82,12 +78,10 @@ def start_monitor(report_id):
             else:
                 status, color = " CLEAR", "\033[92m"
             
-            # Progress bar (0-100%)
             bar_len = 30
             filled = int(bar_len * (display_pct / 100))
             bar = "█" * filled + "░" * (bar_len - filled)
             
-            # 🆕 FIXED OUTPUT
             output = (
                 f"\r\033[K"  # Clear line
                 f"Day {debug['game_days']:.2f} | "

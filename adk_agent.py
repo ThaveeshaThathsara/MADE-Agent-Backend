@@ -34,8 +34,6 @@ except Exception as e:
 def execute_task_with_adk(report_id: str, task: str, task_description: str = "", image_paths: list = [],task_retention: float = None, task_confidence: str = None):
     """
     Execute task using Google Gemini with MADE cognitive state
-    Supports multimodal input (text + images)
-    Yields progress updates as they happen
     """
     if not client:
         yield " Gemini API not initialized. Check GEMINI_API_KEY in .env"
@@ -45,7 +43,6 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
     # Step 1: Get cognitive state from MADE backend
     try:
         if task_retention is not None and task_confidence is not None:
-            # USE PRIORITY PANEL RETENTION
             retention = task_retention
             confidence = task_confidence
             should_struggle = retention < 0.40
@@ -142,7 +139,7 @@ IMPORTANT INSTRUCTIONS:
 BEGIN WORKING NOW AND PRODUCE ACTUAL OUTPUT:
 """
 
-    # Step 4: Prepare multimodal content (text + images)
+    # Step 4: Prepare multimodal content
     try:
         yield " Starting task execution with Gemini AI..."
         yield f" Task: {task}"
