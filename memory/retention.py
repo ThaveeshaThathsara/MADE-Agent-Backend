@@ -7,8 +7,8 @@ from pymongo import MongoClient
 # Research-Validated Constants
 S_FAST = 1.47   # Fast decay
 S_SLOW = 4.07   # Slow decay  
-TRANSITION_THRESHOLD = 0.40  # Kornell et al. (2011)
-STOP_THRESHOLD = 0.30        # Parks & Yonelinas (2009)
+TRANSITION_THRESHOLD = 0.40  
+STOP_THRESHOLD = 0.21       
 
 def calculate_retention(p_factor, days=0, s_fast=None, s_slow=None, **kwargs):
    

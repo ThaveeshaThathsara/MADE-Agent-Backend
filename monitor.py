@@ -96,7 +96,7 @@ def watch_degradation(report_id, game_time_scale=60):
         print(f"[{bar}]")
 
         if retention <= 0.30:
-            print(f"\n🛑 THRESHOLD REACHED: Memory degraded to 30%.")
+            print(f"\n🛑 THRESHOLD REACHED: Memory degraded to 21%.")
             print(f"📅 Total Time: Day {display_days}, {display_hours}h {display_minutes}m")
             print(f"⚠️  Reconstruction is now required.")
             break

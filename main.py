@@ -441,8 +441,11 @@ async def get_npc_state_for_adk(report_id: str):
         "phase": phase,
         "p_factor": p_factor, 
         "active_task": active_task["task_name"] if active_task else None,
-        "should_struggle": retention_for_adk < 0.40,
-        "is_confused": retention_for_adk < 0.30
+        # "should_struggle": retention_for_adk < 0.40,
+        # "is_confused": retention_for_adk < 0.30
+        "is_reconstructing_mild": retention_for_adk <= 0.40 and retention_for_adk > 0.30,
+        "is_reconstructing_heavy": retention_for_adk <= 0.30 and retention_for_adk > 0.21,
+        "is_confused": retention_for_adk <= 0.21
     }
 running_tasks = {}
 
@@ -619,7 +622,7 @@ async def execute_task_stream_by_id(task_id: str, mode: str = "default"):
                         ret, _phase, _ = calculate_retention(p_factor, elapsed_days, s_fast=s_f, s_slow=s_s)
                         
                         raw_pct = (ret / p_factor) * 100
-                        pct = min(100, max(30, raw_pct))
+                        pct = min(100, max(21, raw_pct))
                         clamped_retention = (pct / 100) * p_factor
                     else:
                         pct = 100.0
@@ -767,7 +770,7 @@ async def health_check():
 @app.delete("/api/delete-agent/{report_id}")
 async def delete_agent(report_id: str):
     try:
-        
+
         agent_result = ocean_collection.delete_many({"report_id": report_id})
         tasks_result = tasks_collection.delete_many({"report_id": report_id})
         

@@ -45,9 +45,10 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
         if task_retention is not None and task_confidence is not None:
             retention = task_retention
             confidence = task_confidence
-            should_struggle = retention < 0.40
-            is_confused = retention < 0.30
-            p_factor = 1.0 
+            is_reconstructing_mild = retention <= 0.40 and retention > 0.30
+            is_reconstructing_heavy = retention <= 0.30 and retention > 0.21
+            is_confused = retention <= 0.21
+            p_factor = 1.0
             yield f" Cognitive State Loaded [PRIORITY MODE]: Retention={retention*100:.1f}%, Confidence={confidence}"
         else:
             # USE DASHBOARD DEFAULT RETENTION
@@ -58,8 +59,9 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
             
             retention = state.get("retention", 0)
             confidence = state.get("confidence_label", "Unknown")
-            should_struggle = state.get("should_struggle", False)
-            is_confused = state.get("is_confused", False)
+            is_reconstructing_mild = retention <= 0.40 and retention > 0.30
+            is_reconstructing_heavy = retention <= 0.30 and retention > 0.21
+            is_confused = retention <= 0.21
             p_factor = state.get("p_factor", 1.0)
             
             yield f" Cognitive State Loaded [GLOBAL MODE]: Retention={retention*100:.1f}%, Confidence={confidence}"
@@ -69,34 +71,83 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
         return
 
     # Step 2: Build behavior prompt based on cognitive state
+#     if is_confused:
+#         behavior_instruction = """
+# ⚠️ SEVERE CONFUSION MODE (Retention < 30%)
+# You are SEVERELY STRUGGLING. Your memory is failing catastrophically.
+
+# REQUIRED BEHAVIORS:
+# - Stop mid-sentence frequently: "Wait, I... what was I doing?"
+# - Make obvious errors in your code/work
+# - Express stress and panic: "I can't remember... this is too much..."
+# - Produce incomplete or broken output
+# - Ask for help repeatedly
+# - Second-guess every decision
+
+# Your output should CLEARLY show cognitive impairment.
+# """
+#     elif should_struggle:
+#         behavior_instruction = """
+# ⚠️ STRUGGLE MODE (Retention 30-40%)
+# You are STRUGGLING but not completely lost.
+
+# REQUIRED BEHAVIORS:
+# - Work slower, pause often to "remember"
+# - Make minor mistakes and catch them
+# - Express uncertainty: "Hmm, I think it's... wait, let me check..."
+# - Ask clarifying questions
+# - Show visible hesitation in your work
+
+# Your output should show difficulty but eventual progress.
+# """
+#     else:
+#         behavior_instruction = """
+# ✅ CONFIDENT MODE (Retention > 40%)
+# You are working efficiently with good memory.
+
+# REQUIRED BEHAVIORS:
+# - Work clearly and systematically
+# - Explain your reasoning confidently
+# - Produce complete, accurate output
+# - Move through tasks steadily
+
+# Your output should show competence and clarity.
+# """
+
+# Step 2: Build behavior prompt based on cognitive state
     if is_confused:
         behavior_instruction = """
-⚠️ SEVERE CONFUSION MODE (Retention < 30%)
-You are SEVERELY STRUGGLING. Your memory is failing catastrophically.
+⚠️ BIOLOGICAL FLOOR / SEVERE CONFUSION (Retention <= 21%)
+Your memory has hit the 21% biological floor. The memory is almost entirely gone.
 
 REQUIRED BEHAVIORS:
-- Stop mid-sentence frequently: "Wait, I... what was I doing?"
-- Make obvious errors in your code/work
-- Express stress and panic: "I can't remember... this is too much..."
-- Produce incomplete or broken output
-- Ask for help repeatedly
-- Second-guess every decision
-
-Your output should CLEARLY show cognitive impairment.
+- Frequently stop mid-sentence: "Wait, I... what was I doing?"
+- Express severe cognitive failure: "I can't remember... it's just noise..."
+- Use heavy hedging: "Maybe it was... no, that's not right either."
+- Produce highly fragmented, incomplete output.
+- You are functionally unable to recall specific details.
 """
-    elif should_struggle:
+    elif is_reconstructing_heavy:
         behavior_instruction = """
-⚠️ STRUGGLE MODE (Retention 30-40%)
-You are STRUGGLING but not completely lost.
+⚠️ HEAVY RECONSTRUCTION MODE (Retention 22% - 30%)
+Your memory is very weak. You must actively reconstruct fragments.
 
 REQUIRED BEHAVIORS:
-- Work slower, pause often to "remember"
-- Make minor mistakes and catch them
-- Express uncertainty: "Hmm, I think it's... wait, let me check..."
-- Ask clarifying questions
-- Show visible hesitation in your work
+- Use heavy filler words frequently: "Umm...", "Uhh...", "Wait..."
+- Second-guess yourself: "I think it was... or maybe it wasn't?"
+- Show visible hesitation and struggle to piece the facts together.
+- Your output should take longer and contain multiple self-corrections.
+"""
+    elif is_reconstructing_mild:
+        behavior_instruction = """
+⚠️ MILD RECONSTRUCTION MODE (Retention 31% - 40%)
+Your memory has just fallen below the reliable threshold. 
 
-Your output should show difficulty but eventual progress.
+REQUIRED BEHAVIORS:
+- Use mild filler words: "Hmm...", "Let me think..."
+- Make minor pauses before giving facts.
+- Express slight uncertainty but eventually figure it out: "Hmm, let me check... ah, yes."
+- Your output is mostly accurate but lacks instant confidence.
 """
     else:
         behavior_instruction = """
@@ -104,12 +155,9 @@ Your output should show difficulty but eventual progress.
 You are working efficiently with good memory.
 
 REQUIRED BEHAVIORS:
-- Work clearly and systematically
-- Explain your reasoning confidently
-- Produce complete, accurate output
-- Move through tasks steadily
-
-Your output should show competence and clarity.
+- Work clearly and systematically.
+- Explain your reasoning confidently without filler words.
+- Produce complete, accurate output.
 """
 
     # Step 3: Create the system prompt
@@ -120,7 +168,7 @@ You are a SOFTWARE ENGINEER NPC in a hiring simulation.
 - Retention: {retention*100:.1f}%
 - Confidence: {confidence}
 - P-Factor: {p_factor:.3f}
-- Cognitive Phase: {"CONFUSED" if is_confused else "STRUGGLING" if should_struggle else "CONFIDENT"}
+- Cognitive Phase: {"SEVERE CONFUSION" if is_confused else "HEAVY RECONSTRUCTION" if is_reconstructing_heavy else "MILD RECONSTRUCTION" if is_reconstructing_mild else "CONFIDENT"}
 
 {behavior_instruction}
 

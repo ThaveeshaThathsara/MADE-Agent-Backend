@@ -19,7 +19,7 @@ def generate_npc_response(base_memory, confidence_label, phase, retention_pct):
     ret_value = min(1.0, retention_pct) * 100
     
     style_guide = ""
-    if retention_pct < 0.30:
+    if retention_pct < 0.21:
         style_guide = "Use Gist-only language. Do not provide specific details. Sound vague and focus only on the general idea. Example: 'I don't have the details, but the general idea was...'"
     elif phase == "Phase 2 (Slow)" or retention_pct < 0.40:
         style_guide = "Use Reconstructive language. Sound uncertain and speculative. Use fillers like 'I think', 'maybe', 'if I recall correctly'. Example: 'If I recall correctly, I think it was...'"
@@ -119,4 +119,4 @@ if __name__ == "__main__":
     print(generate_npc_response(test_memory, "Low Confidence", "Phase 2 (Slow)", 0.38))
     
     print("\n--- TEST: CONFUSED / GIST ONLY ---")
-    print(generate_npc_response(test_memory, "Confused", "Phase 2 (Slow)", 0.25))
+    print(generate_npc_response(test_memory, "Confused", "Phase 2 (Slow)", 0.21))
