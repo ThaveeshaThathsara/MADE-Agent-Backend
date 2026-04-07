@@ -8,7 +8,7 @@ def calculate_p_factor(normalized_scores):
     A = normalized_scores.get('agreeableness', 0.5)
     N = normalized_scores.get('neuroticism', 0.5)
 
-    # Calculate P-factor using exact meta-analytic weights
+    # Calculate P-factor 
     p_factor = 1.0 + (0.235 * O) + (0.229 * C) + (0.170 * E) + (0.076 * A) - (0.192 * N)
 
     return round(p_factor, 4)
@@ -43,14 +43,14 @@ def calculate_p_factor_with_breakdown(normalized_scores):
         'was_clamped': p_factor != clamped_p_factor
     }
 
-
+# for testing
 if __name__ == "__main__":
     # Test the function
     print("="*60)
     print("Testing P-Factor Calculation (Sutin et al., 2022)")
     print("="*60)
     
-    # Test case 1: Average personality (all 0.5)
+    # Test case 1: Average personality
     avg_person = {
         'openness': 0.5,
         'conscientiousness': 0.5,
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     breakdown = calculate_p_factor_with_breakdown(avg_person)
     print(f"Breakdown: {breakdown}")
     
-    # Test case 2: Optimal memory (high C, O, low N)
+    # Test case 2: Optimal memory 
     optimal_person = {
         'openness': 0.85,
         'conscientiousness': 0.90,
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     breakdown = calculate_p_factor_with_breakdown(optimal_person)
     print(f"Breakdown: {breakdown}")
     
-    # Test case 3: Poor memory (low C, high N)
+    # Test case 3: Poor memory 
     poor_person = {
         'openness': 0.30,
         'conscientiousness': 0.35,

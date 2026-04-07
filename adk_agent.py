@@ -70,51 +70,6 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
         yield f" Failed to fetch cognitive state: {str(e)}"
         return
 
-    # Step 2: Build behavior prompt based on cognitive state
-#     if is_confused:
-#         behavior_instruction = """
-# ⚠️ SEVERE CONFUSION MODE (Retention < 30%)
-# You are SEVERELY STRUGGLING. Your memory is failing catastrophically.
-
-# REQUIRED BEHAVIORS:
-# - Stop mid-sentence frequently: "Wait, I... what was I doing?"
-# - Make obvious errors in your code/work
-# - Express stress and panic: "I can't remember... this is too much..."
-# - Produce incomplete or broken output
-# - Ask for help repeatedly
-# - Second-guess every decision
-
-# Your output should CLEARLY show cognitive impairment.
-# """
-#     elif should_struggle:
-#         behavior_instruction = """
-# ⚠️ STRUGGLE MODE (Retention 30-40%)
-# You are STRUGGLING but not completely lost.
-
-# REQUIRED BEHAVIORS:
-# - Work slower, pause often to "remember"
-# - Make minor mistakes and catch them
-# - Express uncertainty: "Hmm, I think it's... wait, let me check..."
-# - Ask clarifying questions
-# - Show visible hesitation in your work
-
-# Your output should show difficulty but eventual progress.
-# """
-#     else:
-#         behavior_instruction = """
-# ✅ CONFIDENT MODE (Retention > 40%)
-# You are working efficiently with good memory.
-
-# REQUIRED BEHAVIORS:
-# - Work clearly and systematically
-# - Explain your reasoning confidently
-# - Produce complete, accurate output
-# - Move through tasks steadily
-
-# Your output should show competence and clarity.
-# """
-
-# Step 2: Build behavior prompt based on cognitive state
     if is_confused:
         behavior_instruction = """
 ⚠️ BIOLOGICAL FLOOR / SEVERE CONFUSION (Retention <= 21%)

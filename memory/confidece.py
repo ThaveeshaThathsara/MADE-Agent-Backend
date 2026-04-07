@@ -8,7 +8,6 @@ def calculate_confidence(retention):
     variation = random.uniform(-0.15, 0.15)
     confidence = retention + variation
     
-    # Clamp confidence between 0.0 and 1.0
     confidence = max(0.0, min(1.0, confidence))
     
     # Determine confidence band
