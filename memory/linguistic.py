@@ -1,13 +1,18 @@
 import os
-import google.generativeai as genai
+import google.genai as genai
 from dotenv import load_dotenv
+import random
 
 load_dotenv()
 
-# Configure Gemini
+# Configure Gemini Client
 api_key = os.getenv("GEMINI_API_KEY")
+client = None
 if api_key:
-    genai.configure(api_key=api_key)
+    try:
+        client = genai.Client(api_key=api_key)
+    except Exception as e:
+        print(f" WARNING: Failed to initialize Gemini Client: {e}")
 else:
     print(" WARNING: GEMINI_API_KEY not found in environment.")
 
@@ -52,30 +57,32 @@ def generate_npc_response(base_memory, confidence_label, phase, retention_pct):
         # 'gemini-1.5-flash-lite-latest',
         # 'gemini-2.0-flash-lite',
         # 'gemini-2.0-flash'
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
+        'gemini-2.5-flash-lite',
+        # 'gemini-2.5-flash',
+        # 'gemini-2.0-flash',
+        # 'gemini-1.5-flash'
     ]
     
-    last_error = ""
-    for model_name in model_names:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            return response.text.strip().replace('"', '')
-        except Exception as e:
-            last_error = str(e)
-            if "429" in last_error:
-                # If we hit quota, don't keep hammering, just log and move to fallback
-                print(f" [Linguistic Engine] Quota Exceeded (429) for {model_name}. Attempting fallback...")
-                break
-            continue
+    if client:
+        for model_name in model_names:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                if response and response.text:
+                    return response.text.strip().replace('"', '')
+            except Exception as e:
+                last_error = str(e)
+                if "429" in last_error:
+                    
+                    print(f" [Linguistic Engine] Quota Exceeded (429) for {model_name}. Attempting fallback...")
+                    break
+                continue
 
     print(f"📡 [Linguistic Engine] API Bypass Active: Simulating neural output for '{confidence_label}' state.")
     
-    import random
     
-    # Research-backed personality-driven fallbacks
     fallbacks = {
         "High Confidence": [
             f"The data for {base_memory} is perfectly synced. I can confirm all parameters are nominal.",
@@ -104,7 +111,6 @@ def generate_npc_response(base_memory, confidence_label, phase, retention_pct):
         ]
     }
     
-    # Default to the most appropriate category
     options = fallbacks.get(confidence_label, fallbacks["Confused"])
     return random.choice(options)
 

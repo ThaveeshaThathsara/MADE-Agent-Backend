@@ -11,12 +11,11 @@ import asyncio
 import threading
 import uuid
 from memory.priority import get_memory_strength
-# Load environment variables
+
 load_dotenv()
 
 app = FastAPI(title="Big Five OCEAN API")
 
-# Enable CORS for your Next.js frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173", "https://made-test-ocean.vercel.app", "https://made-test-ocean-90yqudlau-thaveesha20222110-8749s-projects.vercel.app", "https://made-agent-pfh2k1xj4-thaveesha20222110-8749s-projects.vercel.app", os.getenv("FRONTEND_URL", "https://made-agent-ui.vercel.app")],  # Local + Production URLs
@@ -70,6 +69,9 @@ class TaskItem(BaseModel):
     execution_log: Optional[list] = []
     mode: Optional[str] = "default"
 
+class CrashData(BaseModel):
+    frozen_days: float
+
 from pfactor import calculate_p_factor
 from memory.retention import calculate_retention, calculate_retention_from_timestamp
 
@@ -104,12 +106,12 @@ async def save_ocean_scores(data: OceanData):
         retention_val, phase, _ = calculate_retention(p_factor, days=0)
         print(f" Calculated Retention (Day 0): {retention_val}")
         
-        # Calculate Confidence based on retention
+        # Calculate Confidence 
         conf_val, conf_label = calculate_confidence(retention_val) 
         print(f"   Confidence: {conf_val} ({conf_label})")
         
-        recon_msg = reconstruct_memory(retention_val)
-        print(f"   Reconstruction: {recon_msg}")
+        # recon_msg = reconstruct_memory(retention_val)
+        # print(f"   Reconstruction: {recon_msg}")
         
         # Urgency Calculation
         urgency_val, urgency_msg = calculate_urgency(0.8, 2.0, 5.0)
@@ -120,11 +122,11 @@ async def save_ocean_scores(data: OceanData):
         prio_val, prio_msg = calculate_priority(p_factor, urgency_normalized, retention_val)
         print(f"   Priority: {prio_msg}")
 
-        # Trigger initial  generation (ADK)
+        # Trigger (ADK)
         base_memory = "Initial data ingestion and personality assessment."
         response_text = generate_npc_response(base_memory, conf_label, phase, retention_val)
 
-        # Get or assign persistent agent_number
+        # Get agent_number
         existing_agent = ocean_collection.find_one({"report_id": data.report_id})
         
         if existing_agent and "agent_number" in existing_agent:
@@ -279,6 +281,24 @@ async def save_task(task: TaskItem):
         task_dict["required_time_trk"] = float(task_dict["required_time_trk"])
         task_dict["available_time_tak"] = float(task_dict["available_time_tak"])
         
+        # Calculate Urgency with real task values
+        urgency_val, urgency_msg = calculate_urgency(
+            task_dict["importance_kk"],
+            task_dict["required_time_trk"],
+            task_dict["available_time_tak"]
+        )
+        task_dict["urgency_score"] = urgency_val
+        
+        # Calculate Priority using real Urgency + agent's P-Factor + Retention
+        agent = ocean_collection.find_one({"report_id": task.report_id})
+        if agent:
+            p_factor = agent["p_factor"]
+            retention, _, _ = calculate_retention_from_timestamp(p_factor, datetime.fromisoformat(agent["saved_at"]))
+            urgency_normalized = min(1.0, urgency_val)
+            prio_val, prio_msg = calculate_priority(p_factor, urgency_normalized, retention)
+            task_dict["priority_score"] = prio_val
+            print(f"   Urgency: {urgency_msg} | Priority: {prio_msg}")
+        
         result = tasks_collection.insert_one(task_dict)
         print(f" Task Assigned: {task.task_name} | ID: {result.inserted_id}")
         
@@ -339,6 +359,24 @@ async def save_priority_task(task: TaskItem):
         task_dict["importance_kk"] = float(task_dict["importance_kk"])
         task_dict["required_time_trk"] = float(task_dict["required_time_trk"])
         task_dict["available_time_tak"] = float(task_dict["available_time_tak"])
+        
+        # Calculate Urgency with real task values
+        urgency_val, urgency_msg = calculate_urgency(
+            task_dict["importance_kk"],
+            task_dict["required_time_trk"],
+            task_dict["available_time_tak"]
+        )
+        task_dict["urgency_score"] = urgency_val
+        
+        # Calculate Priority using real Urgency + agent's P-Factor + Retention
+        agent = ocean_collection.find_one({"report_id": task.report_id})
+        if agent:
+            p_factor = agent["p_factor"]
+            retention, _, _ = calculate_retention_from_timestamp(p_factor, datetime.fromisoformat(agent["saved_at"]))
+            urgency_normalized = min(1.0, urgency_val)
+            prio_val, prio_msg = calculate_priority(p_factor, urgency_normalized, retention)
+            task_dict["priority_score"] = prio_val
+            print(f"   Urgency: {urgency_msg} | Priority: {prio_msg}")
         
         result = tasks_collection.insert_one(task_dict)
         return {"success": True, "task_id": str(result.inserted_id)}
@@ -413,7 +451,11 @@ async def execute_task_stream(report_id: str, task: str):
 
 @app.get("/api/adk/get-npc-state/{report_id}")
 async def get_npc_state_for_adk(report_id: str):
-    candidate = ocean_collection.find_one({"report_id": report_id})
+    
+    candidate = ocean_collection.find_one(
+        {"report_id": report_id},
+        sort=[("saved_at", -1)]
+    )
     if not candidate:
         raise HTTPException(status_code=404, detail="NPC not found")
 
@@ -621,7 +663,7 @@ async def execute_task_stream_by_id(task_id: str, mode: str = "default"):
                         
                         ret, _phase, _ = calculate_retention(p_factor, elapsed_days, s_fast=s_f, s_slow=s_s)
                         
-                        raw_pct = (ret / p_factor) * 100
+                        raw_pct = (ret / 1) * 100
                         pct = min(100, max(21, raw_pct))
                         clamped_retention = (pct / 100) * p_factor
                     else:
@@ -783,6 +825,19 @@ async def delete_agent(report_id: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/freeze-agent/{report_id}")
+async def freeze_agent(report_id: str, data: CrashData):
+    try:
+        print(f"❄️ FREEZING AGENT {report_id} at Day {data.frozen_days}")
+        # Update MongoDB so it remembers this agent is dead
+        ocean_collection.update_one(
+            {"report_id": report_id},
+            {"$set": {"frozen_game_days": data.frozen_days}}
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))        
 
 if __name__ == "__main__":
     import uvicorn

@@ -32,8 +32,8 @@ def get_memory_strength(priority_level):
     
     STRENGTH_MAP = {
         'HIGH': {
-            's_fast': 2.50,   # Slow decay
-            's_slow': 6.00,
+            's_fast': 2.77,   # Slow decay
+            's_slow': 5.00,
             'label': 'Strong Memory (Slow Decay)'
         },
         'MED': {
@@ -42,8 +42,8 @@ def get_memory_strength(priority_level):
             'label': 'Normal Memory (Default Decay)'
         },
         'LOW': {
-            's_fast': 0.80,   # Fast decay
-            's_slow': 2.00,
+            's_fast': 0.50,   # Fast decay
+            's_slow': 2.77,
             'label': 'Weak Memory (Fast Decay)'
         }
     }

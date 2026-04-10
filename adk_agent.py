@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# DEBUG: Check if .env loaded
+# DEBUG
 api_key = os.getenv("GEMINI_API_KEY")
 print(f"🔍 Debug: API Key loaded: {bool(api_key)}")
 if api_key:
@@ -16,7 +16,6 @@ if api_key:
 else:
     print("   API Key is None or empty")
 
-# Initialize Gemini client (CORRECT METHOD)
 try:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -24,7 +23,7 @@ try:
         print("   Please add: GEMINI_API_KEY=your_key_here")
         client = None
     else:
-        client = genai.Client(api_key=api_key)  # NEW API METHOD
+        client = genai.Client(api_key=api_key) 
         print(" Google Gemini API initialized")
         print(f"   API Key starts with: {api_key[:10]}...")
 except Exception as e:
@@ -32,9 +31,7 @@ except Exception as e:
     client = None
 
 def execute_task_with_adk(report_id: str, task: str, task_description: str = "", image_paths: list = [],task_retention: float = None, task_confidence: str = None):
-    """
-    Execute task using Google Gemini with MADE cognitive state
-    """
+    
     if not client:
         yield " Gemini API not initialized. Check GEMINI_API_KEY in .env"
         yield "   Get a FREE API key from: https://aistudio.google.com/app/apikey"
@@ -51,7 +48,7 @@ def execute_task_with_adk(report_id: str, task: str, task_description: str = "",
             p_factor = 1.0
             yield f" Cognitive State Loaded [PRIORITY MODE]: Retention={retention*100:.1f}%, Confidence={confidence}"
         else:
-            # USE DASHBOARD DEFAULT RETENTION
+            
             port = os.getenv("PORT", "8000")
             state_response = requests.get(f"http://localhost:{port}/api/adk/get-npc-state/{report_id}")
             state_response.raise_for_status()
@@ -142,7 +139,6 @@ IMPORTANT INSTRUCTIONS:
 BEGIN WORKING NOW AND PRODUCE ACTUAL OUTPUT:
 """
 
-    # Step 4: Prepare multimodal content
     try:
         yield " Starting task execution with Gemini AI..."
         yield f" Task: {task}"
@@ -152,7 +148,7 @@ BEGIN WORKING NOW AND PRODUCE ACTUAL OUTPUT:
             yield f" Images attached: {len(image_paths)}"
         yield ""
         
-        # Build multimodal content
+        # Build  content
         contents = [system_prompt]
         
         # Add images if provided
@@ -163,7 +159,6 @@ BEGIN WORKING NOW AND PRODUCE ACTUAL OUTPUT:
                         with open(img_path, "rb") as f:
                             image_data = base64.b64encode(f.read()).decode()
                         
-                        # Determine mime type
                         ext = Path(img_path).suffix.lower()
                         mime_map = {
                             '.jpg': 'image/jpeg',
@@ -185,9 +180,8 @@ BEGIN WORKING NOW AND PRODUCE ACTUAL OUTPUT:
         yield "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         yield ""
         
-        # Use NEW API method for streaming with multimodal content
         response = client.models.generate_content_stream(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             contents=contents
         )
         

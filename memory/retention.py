@@ -4,7 +4,6 @@ import sys
 from datetime import datetime, timezone
 from pymongo import MongoClient
 
-# Research-Validated Constants
 S_FAST = 1.47   # Fast decay
 S_SLOW = 4.07   # Slow decay  
 TRANSITION_THRESHOLD = 0.40  
