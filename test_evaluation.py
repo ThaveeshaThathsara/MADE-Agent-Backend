@@ -180,7 +180,7 @@ def test_retention_accuracy():
     # Ebbinghaus savings benchmarks
     benchmark_data = {
         20/1440: 0.582, 60/1440: 0.442, 540/1440: 0.358,
-        1: 0.338, 2: 0.278, 6: 0.254, 31: 0.211
+        1: 0.337, 2: 0.278, 6: 0.254, 31: 0.211
     }
     
     actual_values = []
